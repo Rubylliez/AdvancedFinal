@@ -1,0 +1,85 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    
+        <title>Compress File</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
+        <style type="text/css">
+            html, body {
+                height: 100%;
+                margin: 0;
+                font-family: 'Oswald', sans-serif;
+            }
+            #wrapper {
+                min-height: 100%;
+            }
+            .heading{
+                font-family: 'Kalam', cursive;
+            }
+            .bton{
+                font-weight:600;
+                font-size: 16px;
+                background: white;
+                color: black;
+                border:transparent;
+                padding: 5px 15px;
+                transition: transform 0.5s;
+            }
+            .bton:hover{
+                font-weight:600;
+                cursor:pointer;
+                background:transparent;
+                color:white;
+                text-decoration:none;
+                transform: translateY(-8px);
+            }
+            .bton2{
+                font-weight:600;
+                font-size: 16px;
+                background: transparent;
+                color: white;
+                border:transparent;
+                padding: 8px 25px;
+                transition: transform 0.5s;
+            }
+            .bton2:hover{
+                color:white;
+                text-decoration:none;
+                transform: translateY(-8px);
+            }
+        </style>
+    </head>
+    
+    <body style="background-color: black; align-items: center; margin-top:-30px;">
+    <div style="color: white; text-align:center;" id="wrapper">
+        <nav class="navbar" style="display:flex; justify-content: flex-end; padding: 10px; margin-top: 50px;">
+            <button class="bton2" style="margin-right: 30px;"><a href="logIn.html" class="login" style="color: white">Log In</a></button>
+            <button class="bton2" style="margin-right: 10px;"><a href="signUp.html" class="signup" style="color: white">Sign Uo</a></button>
+        </nav>
+    
+        <h1 style="padding-top:150px; font-size: 44px; font-weight:700;">Welcome to our "File Compressor" project! <br>
+            We're thrilled to have you on board and <br>
+            thank you for joining us. <br>
+        
+
+        <div class="col-2" style="flex: 1;">
+            <div style="margin: 5px 30px;" id="myalert" class="alert alert-success collapse">
+                <a id="linkClose" href="#" class="close" style="text-decoration:none;">&times;</a>
+                <p id="mytext"></p>
+            </div>
+            <div style="margin: 5px 30px;" id="myalert1" class="alert alert-danger collapse">
+                <a id="linkClose1" href="#" class="close" style="text-decoration:none;">&times;</a>
+                <p id="mytext1"></p>
+            </div>
+        </div>
+    </div>
+    </body>
+    </html>
+    

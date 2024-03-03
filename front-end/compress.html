@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.0.0/dist/jwt-decode.min.js"></script>
+
+    <title>Compress File</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style type="text/css">
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Oswald', sans-serif;
+        }
+        #wrapper {
+            min-height: 100%;
+        }
+        .heading{
+            font-family: 'Kalam', cursive;
+        }
+        .bton{
+            font-weight:600;
+            font-size: 16px;
+            background: white;
+            color: black;
+            border:transparent;
+            padding: 5px 15px;
+            transition: transform 0.5s;
+        }
+        .bton:hover{
+            font-weight:600;
+            cursor:pointer;
+            background:transparent;
+            color:white;
+            text-decoration:none;
+            transform: translateY(-8px);
+        }
+        .bton2{
+            font-weight:600;
+            font-size: 16px;
+            background: transparent;
+            color: white;
+            border:transparent;
+            padding: 8px 25px;
+            transition: transform 0.5s;
+        }
+        .bton2:hover{
+            color:white;
+            text-decoration:none;
+            transform: translateY(-8px);
+        }
+    </style>
+</head>
+
+<body style="background-color: black; align-items: center; margin-top:-30px;">
+<div style="color: white; text-align:center;" id="wrapper">
+    <nav class="navbar" style="display:flex; justify-content: flex-end; padding: 10px; margin-top: 50px;" id="navbar">
+        <button class="bton2 login" id="login" style="margin-right: 30px;"><a href="logIn.html" style="color: white">Log In</a></button>
+        <button class="bton2" id="signup" style="margin-right: 10px;"><a href="signUp.html" style="color: white">Sign Up</a></button>
+    </nav>    
+
+    <h1 style="padding-top:150px; font-size: 44px; font-weight:700;">COMPRESS YOUR FILE</h1>
+    <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx" style="font-size:16px; width:170px; height:25px; margin-left:44%; background:white; color:#a0a0a0; margin-top: 10px;">
+    <!-- Изменен тип кнопки на button -->
+    <button id="uploadBtn" style="margin-top:30px;" class="bton">Upload</button><br>
+    <label style="margin-top:20px; font-weight:lighter; font-size:16px;">Please wait after uploading so that your file gets compressed.</label>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.0.0/dist/jwt-decode.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"golang.org/x/crypto/bcrypt"
@@ -21,6 +22,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -73,6 +75,27 @@ var (
 	jwtKey = []byte("eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTcwODYyNDAyMCwiaWF0IjoxNzA4NjI0MDIwfQ.Tqpy7EBFrx2DnN--TJJzl-nRsbKxh0WmpvyXqeQWK8c") // Change this to your secret key
 )
 
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+type Server struct {
+	connections map[string][]*websocket.Conn
+	mu          sync.Mutex
+}
+
+type Message struct {
+	ID        uint   `gorm:"primaryKey"`
+	Username  string `gorm:"not null"`
+	ChatID    string `gorm:"not null"`
+	Text      string
+	Status    string `gorm:"not null"`
+	CreatedAt time.Time
+	Role      string `gorm:"not null"`
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -93,15 +116,16 @@ func main() {
 		logger.Fatal("Could not connect to the database:", err)
 	}
 	log.Println("Connected to database")
-	err = db.AutoMigrate(&User{})
+	err = db.AutoMigrate(&User{}, &Message{})
 	if err != nil {
 		logger.Fatal("Could not migrate table:", err)
 	}
 
+	server := NewServer()
 	http.Handle("/compressed/", http.StripPrefix("/compressed/", http.FileServer(http.Dir("compressed"))))
-	// Other route handlers
-	router := mux.NewRouter()
 
+	router := mux.NewRouter()
+	router.HandleFunc("/ws", server.handleWS) // Register the WebSocket route
 	router.HandleFunc("/getusersforpaging", getUsersForPagingHandler).Methods("GET")
 	router.HandleFunc("/login", loginHandler).Methods("POST")
 	router.HandleFunc("/register", registerUserHandler).Methods("POST")
@@ -111,7 +135,10 @@ func main() {
 	router.HandleFunc("/deleteuser", deleteUserHandler).Methods("DELETE")
 	router.HandleFunc("/updateuser", updateUserHandler).Methods("PUT")
 	router.HandleFunc("/getuser", getUserHandler).Methods("GET")
-
+	router.HandleFunc("/validateChatID", validateChatIDHandler).Methods("GET")
+	router.HandleFunc("/activeConnections", activeConnectionsHandler).Methods("GET")
+	router.HandleFunc("/changeStatus", changeStatusHandler).Methods("POST")
+	router.HandleFunc("/getPreviousMessages", getPreviousMessagesHandler).Methods("GET")
 	// CORS configuration
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -133,6 +160,184 @@ func main() {
 
 	logger.Info("Shutting down gracefully...")
 	os.Exit(0)
+}
+
+func NewServer() *Server {
+	return &Server{
+		connections: make(map[string][]*websocket.Conn),
+	}
+}
+
+func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Upgrade error:", err)
+		return
+	}
+	defer ws.Close()
+
+	log.Println("new incoming connection from client:", ws.RemoteAddr())
+	chatID := r.URL.Query().Get("chatID")
+
+	s.mu.Lock()
+	s.connections[chatID] = append(s.connections[chatID], ws)
+	s.mu.Unlock()
+
+	s.readLoop(ws)
+}
+
+func (s *Server) readLoop(ws *websocket.Conn) {
+	defer ws.Close()
+
+	for {
+		_, msg, err := ws.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Println("read error", err)
+			}
+			break
+		}
+
+		var message Message
+		err = json.Unmarshal(msg, &message)
+		if err != nil {
+			log.Println("error unmarshalling message:", err)
+			continue
+		}
+
+		// Проверяем, существует ли запись с указанным chatID
+		var existingMessage Message
+		result := db.Where("chat_id = ?", message.ChatID).First(&existingMessage)
+		if result.Error != nil {
+			if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				log.Println("error checking existing message:", result.Error)
+				continue
+			}
+		}
+
+		if existingMessage.ID == 0 {
+			// Создаем новую запись, если запись с указанным chatID не существует
+			message.Text = message.Username + "_" + message.Text
+			result = db.Create(&message)
+			if result.Error != nil {
+				log.Println("error saving new message:", result.Error)
+				continue
+			}
+		} else {
+			// Обновляем текст существующего сообщения с префиксом в зависимости от роли
+			roleText := ""
+			if message.Role == "admin" {
+				roleText = "admin_" + message.Text
+			} else {
+				roleText = message.Username + "_" + message.Text
+			}
+			result = db.Model(&existingMessage).Update("text", existingMessage.Text+"\n"+roleText)
+			if result.Error != nil {
+				log.Println("error updating existing message:", result.Error)
+				continue
+			}
+		}
+
+		for ChatID, conns := range s.connections {
+			if ChatID != message.ChatID {
+				continue
+			}
+
+			s.mu.Lock()
+			for _, conn := range conns {
+				// Пропускаем отправку сообщения самому себе
+				if conn == ws {
+					continue
+				}
+				err := conn.WriteMessage(websocket.TextMessage, msg)
+				if err != nil {
+					log.Println("write error", err)
+					conn.Close()
+				}
+			}
+			s.mu.Unlock()
+		}
+	}
+}
+
+func changeStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// Парсинг данных из тела запроса
+	var requestData struct {
+		ChatID string `json:"chatID"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		// Если произошла ошибка при чтении тела запроса
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Удаление соединения из базы данных
+	result := db.Where("chat_id = ?", requestData.ChatID).Delete(&Message{})
+	if result.Error != nil {
+		// Если произошла ошибка при выполнении запроса
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Error deleting connection"})
+		return
+	}
+
+	// Отправляем успешный ответ
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func activeConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	// Запрос на получение всех активных соединений из базы данных
+	var messages []Message
+	result := db.Where("status = ?", "active").Find(&messages)
+	if result.Error != nil {
+		// Если произошла ошибка при выполнении запроса
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Error retrieving active connections"})
+		return
+	}
+
+	// Отправляем список активных соединений клиенту
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(messages)
+}
+
+func validateChatIDHandler(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+
+	// Поиск пользователя по имени пользователя в базе данных
+	var message Message
+	result := db.Where("username = ?", username).First(&message)
+	if result.Error != nil {
+		// Если пользователя не найдено, возвращаем пустую строку
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"chatID": ""})
+		return
+	}
+
+	// Если пользователь найден, возвращаем его chatID
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"chatID": message.ChatID})
+}
+
+func getPreviousMessagesHandler(w http.ResponseWriter, r *http.Request) {
+	// Получить chatID из параметров запроса
+	chatID := r.URL.Query().Get("chatID")
+
+	// Получить прошлые сообщения из базы данных для указанного chatID
+	var messages []Message
+	result := db.Where("chat_id = ?", chatID).Order("created_at").Find(&messages)
+	if result.Error != nil {
+		// Если произошла ошибка при выполнении запроса
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Error retrieving previous messages"})
+		return
+	}
+
+	// Отправить найденные сообщения клиенту
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(messages)
 }
 
 func getUsersForPagingHandler(w http.ResponseWriter, r *http.Request) {
@@ -232,10 +437,8 @@ func registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Установка роли по умолчанию
 	newUser.Role = "user"
 
-	// Хешируем пароль перед сохранением в базу данных
 	hashedPassword, err := hashPassword(newUser.PasswordHash)
 	if err != nil {
 		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
@@ -254,11 +457,11 @@ func registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Отправляем письмо с подтверждением на адрес электронной почты пользователя
-	err = sendConfirmationEmail(newUser.Email, newUser.ConfirmationToken)
-	if err != nil {
-		http.Error(w, "Failed to send confirmation email", http.StatusInternalServerError)
-		return
-	}
+	//err = sendConfirmationEmail(newUser.Email, newUser.ConfirmationToken)
+	//if err != nil {
+	//	http.Error(w, "Failed to send confirmation email", http.StatusInternalServerError)
+	//	return
+	//}
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -534,12 +737,8 @@ func sendConfirmationEmail(email, token string) error {
 		"Click the link below to activate your account:\r\n"+
 		"%s\r\n", email, confirmationLink)
 
-	fmt.Println("Хотел уже отправить его")
-
 	// Устанавливаем аутентификацию SMTP
 	auth := smtp.PlainAuth("", from, password, smtpHost)
-
-	fmt.Println("Уже почти отправил")
 
 	// Отправляем письмо
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{email}, []byte(message))

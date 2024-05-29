@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    
+    <style>
+        body {
+            background-color: black;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        h1 {
+            color: white;
+        }
+        table {
+            color: white;
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
+        }
+        td {
+            background-color: #555;
+        }
+        .bton{
+            font-weight:600;
+            font-size: 16px;
+            background: rgb(0, 0, 0);
+            color: rgb(255, 255, 255);
+            border:transparent;
+            padding: 5px 15px;
+            transition: transform 0.5s;
+        }
+        .bton:hover{
+            font-weight:600;
+            cursor:pointer;
+            background:black;
+            color:rgb(255, 255, 255);
+            text-decoration:none;
+            transform: translateY(-8px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+<nav class="navbar" style="display:flex; justify-content: flex-end; padding: 10px;">
+    <button class="bton" style="margin-right: 10px; margin-top: 20px;"><a href="compress.html" class="logout" style="color: rgb(255, 255, 255)">Compress</a></button>
+    <button class="bton" onclick="logout()" style="margin-right: 10px; margin-top: 20px;"> <a class="logout" style="color: rgb(255, 255, 255)">Log Out</a></button>
+</nav>
+
+<div class="container">
+    <h1>Active Connections</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Chat ID</th>
+                <th>Text</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="connectionTable">
+            <!-- Placeholder for active connections -->
+        </tbody>
+    </table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script>
+// Функция для загрузки активных соединений
+function loadActiveConnections() {
+    // Отправляем запрос на сервер для получения списка активных соединений
+    $.ajax({
+        type: 'GET',
+        url: 'http://localhost:5050/activeConnections',
+        success: function(response) {
+            try {
+                const connections = response; // Нет необходимости парсить JSON
+                // Очищаем таблицу перед обновлением
+                $('#connectionTable').empty();
+                // Добавляем каждое активное соединение в таблицу
+                connections.forEach(function(connection) {
+                    $('#connectionTable').append(`
+                        <tr>
+                            <td>${connection.Username}</td>
+                            <td>${connection.Status}</td>
+                            <td>${connection.ChatID}</td>
+                            <td>${connection.Text}</td>
+                            <td>${connection.Role}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="changeStatus('${connection.ChatID}')">Close</button>
+                                <button class="btn btn-primary" onclick="joinChat('${connection.ChatID}')">Join</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            } catch (error) {
+                console.error('Error parsing JSON response:', error);
+            }
+        }
+    });
+}
+
+function changeStatus(chatID) {
+    // Отправляем запрос на сервер для изменения статуса соединения
+    console.log(chatID)
+    $.ajax({
+        type: 'POST',
+        url: 'http://localhost:5050/changeStatus',
+        data: JSON.stringify({ ChatID: chatID }), // Правильное имя поля
+        contentType: 'application/json', // Указываем тип контента
+        success: function(response) {
+            // После успешного изменения статуса перезагружаем список активных соединений
+            loadActiveConnections();
+            // Проверяем, если статус успешно изменен, удаляем запись с указанным chatID из таблицы
+            if (response.status === 'success') {
+                $('#connectionTable tr').each(function () {
+                    if ($(this).find('td:eq(2)').text() === chatID) {
+                        $(this).remove();
+                    }
+                });
+            }
+        },
+        error: function(error) {
+            console.error('Error changing connection status:', error);
+        }
+    });
+}
+
+// Функция для присоединения к чату по chatId
+function joinChat(chatId) {
+    localStorage.setItem('chatId', chatId);
+    window.location.href = '/front-end/chat.html';
+}
+
+// Загрузить список активных соединений при загрузке страницы
+$(document).ready(function() {
+    loadActiveConnections();
+});
+</script>
+</body>
+</html>

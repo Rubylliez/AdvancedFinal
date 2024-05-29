@@ -103,7 +103,7 @@ function submitForm() {
 
 function logout() {
   localStorage.removeItem('token');
-  window.location.href = 'login.html';
+  window.location.href = 'logIn.html';
 }
 
 document.addEventListener('DOMContentLoaded', function () {

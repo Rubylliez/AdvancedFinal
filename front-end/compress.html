@@ -22,35 +22,55 @@
             font-family: 'Kalam', cursive;
         }
         .bton{
-            font-weight:600;
+            font-weight: 600;
             font-size: 16px;
             background: white;
             color: black;
-            border:transparent;
+            border: transparent;
             padding: 5px 15px;
             transition: transform 0.5s;
         }
         .bton:hover{
-            font-weight:600;
-            cursor:pointer;
-            background:transparent;
-            color:white;
-            text-decoration:none;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: white;
+            text-decoration: none;
             transform: translateY(-8px);
         }
         .bton2{
-            font-weight:600;
+            font-weight: 600;
             font-size: 16px;
             background: transparent;
             color: white;
-            border:transparent;
+            border: transparent;
             padding: 8px 25px;
             transition: transform 0.5s;
         }
         .bton2:hover{
-            color:white;
-            text-decoration:none;
+            color: white;
+            text-decoration: none;
             transform: translateY(-8px);
+        }
+        .chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-weight: 600;
+            font-size: 16px;
+            background: #ffffff;
+            color: #000000;
+            border: transparent;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.5s, background 0.3s, color 0.3s;
+        }
+        .chat-button:hover {
+            cursor: pointer;
+            background: #000000;
+            color: #ffffff;
+            transform: translateY(-5px);
         }
     </style>
 </head>
@@ -64,9 +84,11 @@
 
     <h1 style="padding-top:150px; font-size: 44px; font-weight:700;">COMPRESS YOUR FILE</h1>
     <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx" style="font-size:16px; width:170px; height:25px; margin-left:44%; background:white; color:#a0a0a0; margin-top: 10px;">
-    <!-- Изменен тип кнопки на button -->
     <button id="uploadBtn" style="margin-top:30px;" class="bton">Upload</button><br>
     <label style="margin-top:20px; font-weight:lighter; font-size:16px;">Please wait after uploading so that your file gets compressed.</label>
+    
+    <!-- Добавляем кнопку Chat -->
+    <button class="chat-button" onclick="window.location.href='chat.html'">Chat</button>
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>

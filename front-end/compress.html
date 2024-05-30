@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.0.0/dist/jwt-decode.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
     <title>Compress File</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -84,15 +86,204 @@
 
     <h1 style="padding-top:150px; font-size: 44px; font-weight:700;">COMPRESS YOUR FILE</h1>
     <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx" style="font-size:16px; width:170px; height:25px; margin-left:44%; background:white; color:#a0a0a0; margin-top: 10px;">
-    <button id="uploadBtn" style="margin-top:30px;" class="bton">Upload</button><br>
+    <button id="openModalBtn" style="margin-top:30px;" class="bton">Upload</button><br>
     <label style="margin-top:20px; font-weight:lighter; font-size:16px;">Please wait after uploading so that your file gets compressed.</label>
     
     <!-- Добавляем кнопку Chat -->
     <button class="chat-button" onclick="window.location.href='chat.html'">Chat</button>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.0.0/dist/jwt-decode.min.js"></script>
+<!-- Модальное окно для формы оплаты -->
+<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Payment Information</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="cardNumber" class="form-control" placeholder="Card Number"><br>
+                <input type="text" id="expirationDate" class="form-control" placeholder="Expiration Date (MM/YY)"><br>
+                <input type="text" id="cvv" class="form-control" placeholder="CVV"><br>
+                <input type="text" id="name" class="form-control" placeholder="Name on Card"><br>
+                <input type="text" id="address" class="form-control" placeholder="Billing Address"><br>
+                <input type="text" id="email" class="form-control" placeholder="Your e-mail"><br>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button id="payBtn" class="btn btn-primary">Pay</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="script.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let compressedURL = ''; // Переменная для хранения URL сжатого файла
+
+        async function compressFile(event) {
+            event.preventDefault(); // Предотвращаем стандартное действие кнопки
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:5050/compress', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to compress file');
+                }
+
+                const data = await response.json();
+                const compressedURL = data.compressed_url;
+
+                // Открываем сжатый файл в новом окне
+                window.open(compressedURL);
+            } catch (error) {
+                console.error('Error compressing file:', error);
+                alert('Error compressing file');
+            }
+        }
+
+        
+        async function processPayment() {
+            const cardNumber = document.getElementById('cardNumber').value;
+            const expirationDate = document.getElementById('expirationDate').value;
+            const cvv = document.getElementById('cvv').value;
+            const name = document.getElementById('name').value;
+            const address = document.getElementById('address').value;
+            const email = document.getElementById("email").value;
+            const username = decodeJwtToken();
+
+            const paymentData = {
+                    username,
+                    cardNumber,
+                    expirationDate,
+                    cvv,
+                    name,
+                    address,
+                    email
+            };
+            
+            try {
+                const response = await fetch('http://localhost:8080/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(paymentData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'transaction_receipt.pdf');
+
+                    // Симуляция клика по ссылке для скачивания файла
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Освобождение ресурсов URL объекта
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Payment failed');
+                }
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                alert('Error processing payment');
+            }
+    }
+        
+    function checkUserRoleAndRenderNavbar() {
+        const token = localStorage.getItem('token');
+        if (token) {
+            const decodedToken = jwt_decode(token);
+            const userRole = decodedToken.role;
+
+            if (userRole === 'admin') {
+                const navbar = document.getElementById('navbar');
+                const dashboardLink = document.createElement('a');
+                dashboardLink.href = 'dashboard.html';
+                dashboardLink.textContent = 'Dashboard';
+                dashboardLink.className = 'bton2 login';
+                navbar.appendChild(dashboardLink);
+            }
+        }
+    }
+
+    function decodeJwtToken() {
+        // Получение JWT токена из локального хранилища
+        const jwtToken = localStorage.getItem('token');
+            
+        if (!jwtToken) {
+            console.error('JWT token not found in local storage');
+            return null;
+        }
+
+        // Разделение токена на три части: заголовок, тело и подпись
+        const tokenParts = jwtToken.split('.');
+
+        // Декодирование тела токена (вторая часть)
+        const decodedTokenBody = atob(tokenParts[1]);
+
+        // Преобразование декодированной строки в объект JSON
+        const tokenBodyObject = JSON.parse(decodedTokenBody);
+
+        // Получение значения поля 'sub' из объекта тела токена
+        const sub = tokenBodyObject.sub;
+            return sub;
+    }
+
+    const openModalBtn = document.getElementById('openModalBtn');
+    openModalBtn.addEventListener('click', function (event) {
+        // Отменяем действие по умолчанию (перезагрузку страницы)
+        event.preventDefault();
+        // Отображаем модальное окно оплаты при нажатии на кнопку Upload
+        $('#paymentModal').modal('show');
+    });
+
+    const payBtn = document.getElementById('payBtn');
+    payBtn.addEventListener('click', async function (event) {
+        await processPayment(event); // Сначала выполняем оплату
+        await compressFile(event); // После оплаты выполняем сжатие файла
+
+        // После сжатия файла, переходим на страницу загрузки с сжатым URL
+        window.location.href = 'download.html?compressedURL=' + encodeURIComponent(compressedURL);
+    });
+
+    function replaceLoginWithLogout() {
+        const loginLink = document.getElementById('loginLink');
+        const parentElement = loginLink.parentElement; // Родительский элемент, в котором находится loginLink
+
+        if (parentElement) {
+            const logoutLink = document.createElement('a');
+            logoutLink.href = '#'; // Установите правильную ссылку для выхода
+            logoutLink.textContent = 'Logout';
+            logoutLink.id = 'logoutLink';
+
+            parentElement.replaceChild(logoutLink, loginLink);
+        } else {
+            console.error('Parent element not found');
+        }
+    }
+});
+</script>
 </body>
 </html>

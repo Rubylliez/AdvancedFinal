@@ -17814,3 +17814,8 @@ created by net/http.(*Server).Serve in goroutine 9
 2024/05/29 21:42:57 Connected to database
 2024/05/29 21:44:42 Connected to database
 2024/05/29 21:48:36 Connected to database
+2024/05/30 20:07:41 Connected to database
+2024/05/30 20:16:16 Connected to database
+2024/05/30 20:23:13 Error creating temporary file: open compressed/compressed-2350020874.docx: no such file or directory
+2024/05/30 20:23:19 Error creating temporary file: open compressed/compressed-2456665264.docx: no such file or directory
+2024/05/30 20:56:02 Connected to database

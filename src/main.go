@@ -491,23 +491,27 @@ func activateAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 func compressHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(10 << 20)
-
+	println(494)
 	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Failed to retrieve file from form data", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
-
+	println(501)
 	fileName := fileHeader.Filename
+	println(fileName)
+	println(503)
+	tempFile, err := ioutil.TempFile("/home/ameroka/GolandProjects/AdvancedFinal/compressed", "compressed-*"+filepath.Ext(fileName))
 
-	tempFile, err := ioutil.TempFile("compressed", "compressed-*"+filepath.Ext(fileName))
 	if err != nil {
 		log.Println("Error creating temporary file:", err)
 		http.Error(w, "Failed to create temporary file", http.StatusInternalServerError)
 		return
 	}
 	defer tempFile.Close()
+
+	println(512)
 
 	gzWriter := gzip.NewWriter(tempFile)
 	defer gzWriter.Close()
@@ -521,6 +525,7 @@ func compressHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	compressedURL := "/compressed/" + filepath.Base(tempFile.Name())
 	jsonResponse := map[string]string{"compressed_url": compressedURL}
+	println(compressedURL)
 	json.NewEncoder(w).Encode(jsonResponse)
 }
 

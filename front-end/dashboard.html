@@ -115,5 +115,146 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        $(document).ready(function() {
+    var currentPage = 1;
+    var totalPages = 1;
+
+    // Function to fetch users with pagination
+    function fetchUsers(page) {
+        $.ajax({
+            url: 'http://localhost:5050/getusers?page=' + page,
+            type: 'GET',
+            success: function(data) {
+                totalPages = data.totalPages;
+
+                // Clear the table before adding new data
+                $('#userTable').empty();
+
+                // Iterate through users and add them to the table
+                data.users.forEach(function(user) {
+                    var row = `<tr>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>${user.phone_number}</td>
+                        <td>
+                            <button class="btn btn-danger deleteBtn" data-userid="${user.id}">Delete</button>
+                            <button class="btn btn-warning editBtn" data-userid="${user.id}">Edit</button>
+                        </td>
+                    </tr>`;
+                    $('#userTable').append(row);
+                });
+
+                // Add event handlers for delete buttons
+                $('.deleteBtn').click(function() {
+                    var userId = $(this).data('userid');
+                    deleteUser(userId);
+                });
+
+                // Add event handlers for edit buttons
+                $('.editBtn').click(function() {
+                    var userId = $(this).data('userid');
+                    openEditModal(userId);
+                });
+            },
+            error: function(error) {
+                console.error('Error fetching users:', error);
+                alert('Error fetching users');
+            }
+        });
+    }
+
+    // Event handler for "Previous Page" button
+    $('#prevPage').click(function() {
+        if (currentPage > 1) {
+            currentPage--;
+            fetchUsers(currentPage);
+        }
+    });
+
+    // Event handler for "Next Page" button
+    $('#nextPage').click(function() {
+        if (currentPage < totalPages) {
+            currentPage++;
+            fetchUsers(currentPage);
+        }
+    });
+
+    // Load users on the first page when the page is loaded
+    fetchUsers(currentPage);
+
+    // Function to delete a user
+    function deleteUser(userId) {
+        $.ajax({
+            url: 'http://localhost:5050/deleteuser?id=' + userId,
+            type: 'DELETE',
+            success: function(response) {
+                // Refresh the user list after deletion
+                fetchUsers(currentPage);
+            },
+            error: function(error) {
+                console.error('Error deleting user:', error);
+                alert('Error deleting user');
+            }
+        });
+    }
+
+    // Function to open the edit modal with user data
+    function openEditModal(userId) {
+    // Make an AJAX request to get user data by ID
+    $.ajax({
+        url: 'http://localhost:5050/getuser?id=' + userId, // Исправлено на getuser
+        type: 'GET',
+        success: function(user) {
+            // Fill the form fields with user data
+            $('#editUsername').val(user.username);
+            $('#editEmail').val(user.email);
+            $('#editPhoneNumber').val(user.phone_number);
+            $('#editUserId').val(user.id);
+
+            // Open the edit modal
+            $('#editModal').modal('show');
+        },
+        error: function(error) {
+            console.error('Error fetching user data:', error);
+            alert('Error fetching user data');
+        }
+    });
+    }
+
+
+        // Event handler for the edit form submission
+        $('#editForm').submit(function(event) {
+    event.preventDefault();
+
+    // Get the form data
+    var formData = {
+    id: parseInt($('#editUserId').val()),
+    username: $('#editUsername').val(),
+    email: $('#editEmail').val(),
+    phone_number: $('#editPhoneNumber').val()
+    };
+
+    // Make an AJAX request to update user data
+    $.ajax({
+    url: 'http://localhost:5050/updateuser?id=' + formData.id,
+    type: 'PUT', // Changed to PUT request
+    contentType: 'application/json',
+    data: JSON.stringify(formData),
+    success: function(response) {
+        // Close the modal
+        $('#editModal').modal('hide');
+        
+        // Refresh the user list after update
+        fetchUsers(currentPage);
+    },
+    error: function(error) {
+        console.error('Error updating user data:', error);
+        alert('Error updating user data');
+    }
+    });
+    });
+    });
+    </script>
 </body>
 </html>

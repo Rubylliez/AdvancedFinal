@@ -30,6 +30,60 @@
     </div>
   </div>
   <script src="script.js"></script>
+  <script>
+    function login() {
+  var username = document.getElementById("username").value;
+  var password = document.getElementById("password").value;
+
+  if (!username || !password) {
+    console.error('Username or password is empty');
+    alert('Username or password is empty');
+    return;
+  }
+
+  var data = {
+    username: username,
+    password: password
+  };
+
+  console.log('Sending request with credentials:', data);
+
+  fetch('http://localhost:5050/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    return response.json();
+  })
+  .then(data => {
+    console.log('Response data:', data);
+    var token = data.token;
+    console.log('Token:', token);
+    
+    if (token) {
+      localStorage.setItem('token', token);
+      console.log('Token saved successfully:', token);
+      // Перенаправление на compress.html
+      window.location.href = 'compress.html';
+    } else {
+      console.log('Token is null or undefined');
+    }
+    
+    alert(data.message);
+  })
+  .catch(error => {
+    console.error('There was an error with the fetch operation:', error);
+    alert('Failed to log in. Please try again.');
+  });
+}
+  </script>
 </body>
 
 </html>

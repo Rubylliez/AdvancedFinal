@@ -66,6 +66,56 @@
     </div>
   </div>
   <script src="script.js"></script>
+  <script>
+    function submitForm() {
+  const fullName = document.getElementById('fullName').value;
+  const username = document.getElementById('username').value;
+  const email = document.getElementById('email').value;
+  const phoneNumber = document.getElementById('phoneNumber').value;
+  const password = document.getElementById('password').value;
+  const gender = document.querySelector('input[name="gender"]:checked').id;
+
+  const userData = {
+    full_name: fullName,
+    username: username,
+    email: email,
+    phone_number: phoneNumber,
+    passwordHash: password, // Здесь исправлено на passwordHash
+    gender: gender
+  };
+
+  console.log('User data:', userData); // Проверяем данные перед отправкой на сервер
+
+  fetch('http://localhost:5050/register', { // Обновленный URL для регистрации
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.text(); // Используем response.text(), так как сервер возвращает простой текст
+    })
+    .then(data => {
+      console.log('Success:', data);
+      alert('Registration successful!');
+  })
+  
+    .catch(error => {
+      console.error('Error:', error);
+      const errorBox = document.createElement('div');
+      errorBox.textContent = 'Error registering user: ' + error.message;
+      errorBox.style = 'position: fixed; top: 10px; left: 10px; padding: 10px; background-color: #f00; color: #fff;';
+      document.body.appendChild(errorBox);
+      setTimeout(() => {
+        document.body.removeChild(errorBox);
+      }, 5000);
+    });
+}
+  </script>
 </body>
 
 </html>

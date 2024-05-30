@@ -34,3 +34,10 @@
      - [React.js документация](https://reactjs.org/docs/getting-started.html)
      - [Gin framework документация](https://gin-gonic.com/docs/)
      - [PostgreSQL документация](https://www.postgresql.org/docs/)
+
+4. Обязательно стоит учитывать:
+    - Frontend:npm, HTML/CSS/JavaScript.
+    - Backend: Go, Gin framework, Bcrypt, PostgreSQL.
+    - Microservice - src/transaction/transaction.go
+    - Microservice - FlaskAPI (Python) src/pythonPdfGeneratorMicroService
+    - Обязательно скачать [wkhtmltopdf](https://wkhtmltopdf.org/downloads.html)
